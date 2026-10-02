@@ -1,0 +1,43 @@
+name: Privacy guard
+
+# Fails if the commits a push or PR adds, or any tracked file, carry a personal email,
+# a private local path or a secret. Already-published history is not re-checked on every run.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  privacy-guard:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Check commits and files
+        env:
+          EVENT: ${{ github.event_name }}
+          BEFORE: ${{ github.event.before }}
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          range=""
+          if [ "$EVENT" = "pull_request" ]; then
+            range="$BASE_SHA..$HEAD_SHA"
+          elif [ "$EVENT" = "push" ]; then
+            # New branch or force push (old tip not fetched): check the whole history.
+            if [ -n "$BEFORE" ] && [ "$BEFORE" != "0000000000000000000000000000000000000000" ] \
+               && git cat-file -e "$BEFORE^{commit}" 2>/dev/null; then
+              range="$BEFORE..$GITHUB_SHA"
+            else
+              range="$GITHUB_SHA"
+            fi
+          fi
+          # workflow_dispatch: no range, only the files as they are now.
+          [ -n "$range" ] && sh .githooks/check-privacy.sh $range
+          sh .githooks/check-privacy.sh --tree
