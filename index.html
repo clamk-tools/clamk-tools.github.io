@@ -252,6 +252,9 @@
     const CACHE_KEY = `${ORG}:tools`;
     // Marker colours cycle across tiles in this order.
     const COLORS = ["blue", "green", "coral"];
+    // Tile letters normally come from the tool name; set them here for a tool whose name gives poor ones.
+    // Keyed by repo name, lower case.
+    const SYMBOLS = { "ez.regex": "Rg" };
 
     const grid = document.getElementById("tools");
     const status = document.getElementById("status");
@@ -300,7 +303,7 @@
     function initials(title) {
       const words = title.split(" ").filter(Boolean);
       const letters = words.length > 1 ? words[0][0] + words[1][0] : title.slice(0, 2);
-      return letters.toUpperCase();
+      return letters[0].toUpperCase() + letters.slice(1).toLowerCase();
     }
 
     function tile(repo, index) {
@@ -312,7 +315,7 @@
       article.append(
         el("span", "idx", String(index + 1).padStart(2, "0")),
         el("span", "cap-dot"),
-        el("div", "sym", initials(title)),
+        el("div", "sym", SYMBOLS[repo.name.toLowerCase()] || initials(title)),
       );
       article.lastElementChild.previousElementSibling.setAttribute("aria-hidden", "true");
 
